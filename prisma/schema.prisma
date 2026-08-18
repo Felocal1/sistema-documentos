@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  password  String
+  role      String     @default("OPERATOR")
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  documents Document[]
+
+  @@map("users")
+}
+
+model Client {
+  id        String     @id @default(cuid())
+  cnpj      String     @unique
+  name      String
+  email     String?
+  phone     String?
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  documents Document[]
+
+  @@map("clients")
+}
+
+model Document {
+  id           String   @id @default(cuid())
+  originalName String
+  filename     String
+  mimeType     String
+  size         Int
+  path         String
+  description  String?
+  clientId     String
+  uploadedById String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  client     Client @relation(fields: [clientId], references: [id])
+  uploadedBy User   @relation(fields: [uploadedById], references: [id])
+
+  @@map("documents")
+}
