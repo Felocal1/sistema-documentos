@@ -12,7 +12,7 @@ export async function saveFile(
   const filename = `${clientId}/${uuidv4()}${ext}`;
 
   const blob = await put(filename, buffer, {
-    access: "public",
+    access: "private",
     contentType: getContentType(ext),
   });
 
@@ -39,7 +39,11 @@ export async function getFileUrl(filePath: string): Promise<string> {
 
 // Retorna o conteúdo do arquivo como buffer (para servir diretamente)
 export async function readFileAsBuffer(filePath: string): Promise<Buffer> {
-  const response = await fetch(filePath);
+  const headers: Record<string, string> = {};
+  if (filePath.includes("blob.vercel-storage.com") && process.env.BLOB_READ_WRITE_TOKEN) {
+    headers["Authorization"] = `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`;
+  }
+  const response = await fetch(filePath, { headers });
   if (!response.ok) throw new Error("Erro ao buscar arquivo");
   const arrayBuffer = await response.arrayBuffer();
   return Buffer.from(arrayBuffer);
