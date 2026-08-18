@@ -89,6 +89,9 @@ function ClientContent() {
   const [viewerDoc, setViewerDoc] = useState<Document | null>(null);
   const [viewerUrl, setViewerUrl] = useState("");
 
+  // Gerar HTML
+  const [htmlLoading, setHtmlLoading] = useState(false);
+
   // Deleta
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -230,6 +233,125 @@ function ClientContent() {
     } catch {}
   };
 
+  // Gerar HTML com dados do cliente e links dos documentos
+  const handleGenerateHtml = async () => {
+    if (!client) return;
+    setHtmlLoading(true);
+    try {
+      // Gera link externo para acesso aos documentos
+      let externalUrl = "";
+      const linkRes = await fetch("/api/client-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId }),
+      });
+      if (linkRes.ok) {
+        const linkData = await linkRes.json();
+        externalUrl = linkData.link?.url || "";
+      }
+
+      const docRows = documents.map((doc, i) => {
+        const docUrl = externalUrl
+          ? `${externalUrl}`
+          : "#";
+        const dateStr = new Date(doc.createdAt).toLocaleDateString("pt-BR");
+        const sizeStr = formatBytes(doc.size);
+        const typeLabel = doc.mimeType === "application/pdf" ? "PDF" : "Imagem";
+        return `
+          <tr>
+            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#374151;">${i + 1}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#111827;font-weight:500;">
+              <a href="${docUrl}" target="_blank" style="color:#2563eb;text-decoration:none;">${doc.originalName}</a>
+            </td>
+            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${dateStr}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${sizeStr}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;">
+              <span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:.72rem;font-weight:600;${doc.mimeType === "application/pdf" ? "background:#fef2f2;color:#dc2626;" : "background:#eff6ff;color:#2563eb;"}">${typeLabel}</span>
+            </td>
+          </tr>`;
+      }).join("");
+
+      const now = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+      const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${client.name} — Documentos</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f9fafb; color: #111827; padding: 32px; }
+    .container { max-width: 800px; margin: 0 auto; background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.1); overflow: hidden; }
+    .header { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; padding: 28px 32px; }
+    .header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+    .header p { font-size: .875rem; opacity: .85; }
+    .info { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 32px; padding: 24px 32px; border-bottom: 1px solid #e5e7eb; }
+    .info-item { font-size: .85rem; }
+    .info-label { color: #6b7280; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+    .info-value { color: #111827; font-weight: 500; }
+    .docs-title { padding: 20px 32px 12px; font-size: 1rem; font-weight: 600; color: #374151; }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 10px 14px; text-align: left; font-size: .72rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid #e5e7eb; background: #f9fafb; }
+    .footer { padding: 16px 32px; text-align: center; font-size: .72rem; color: #9ca3af; border-top: 1px solid #e5e7eb; }
+    @media print { body { padding: 0; } .container { box-shadow: none; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>${client.name}</h1>
+      <p>Documentos anexados</p>
+    </div>
+    <div class="info">
+      <div class="info-item">
+        <div class="info-label">CNPJ</div>
+        <div class="info-value">${client.cnpj}</div>
+      </div>
+      ${client.email ? `<div class="info-item"><div class="info-label">E-mail</div><div class="info-value">${client.email}</div></div>` : ""}
+      ${client.phone ? `<div class="info-item"><div class="info-label">Telefone</div><div class="info-value">${client.phone}</div></div>` : ""}
+      <div class="info-item">
+        <div class="info-label">Total de documentos</div>
+        <div class="info-value">${documents.length}</div>
+      </div>
+    </div>
+    ${documents.length > 0 ? `
+    <div class="docs-title">Documentos</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Arquivo</th>
+          <th>Data</th>
+          <th>Tamanho</th>
+          <th>Tipo</th>
+        </tr>
+      </thead>
+      <tbody>${docRows}</tbody>
+    </table>` : `<div style="padding:32px;text-align:center;color:#9ca3af;">Nenhum documento anexado.</div>`}
+    <div class="footer">
+      Gerado automaticamente por DocManager em ${now}
+      ${externalUrl ? ` · <a href="${externalUrl}" target="_blank" style="color:#2563eb;">Acessar documentos online</a>` : ""}
+    </div>
+  </div>
+</body>
+</html>`;
+
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${client.name.replace(/[^a-zA-Z0-9]/g, "_")}_documentos.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+    } finally {
+      setHtmlLoading(false);
+    }
+  };
+
   return (
     <>
       {/* Topbar */}
@@ -256,6 +378,16 @@ function ClientContent() {
               onClick={() => setShowLinkModal(true)}
             >
               🔗 Gerar link
+            </button>
+          )}
+          {!isLinkMode && documents.length > 0 && (
+            <button
+              id="btn-gerar-html"
+              className="btn btn-outline"
+              onClick={handleGenerateHtml}
+              disabled={htmlLoading}
+            >
+              {htmlLoading ? "⏳ Gerando..." : "📄 Gerar HTML"}
             </button>
           )}
           {!isLinkMode && (
