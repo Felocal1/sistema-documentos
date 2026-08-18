@@ -53,6 +53,12 @@ next-env.d.ts
 /.windsurf/
 skills-lock.json
 
+# debug scripts (not needed in repo)
+add-env*.ps1
+seed-admin.js
+fix-admin.js
+test-login.js
+
 # generated prisma
 /src/generated/prisma
 
