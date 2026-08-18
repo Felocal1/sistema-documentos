@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+uploads/
+.agents/
+.claude/
+.windsurf/
+add-env*.ps1
+check-users.js
+fix-admin.js
+seed-admin.js
+test-login.js
+.git/
+.next/
+.vercel/
