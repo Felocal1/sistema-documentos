@@ -261,7 +261,7 @@ function ClientContent() {
 
       const docRows = documents.map((doc, i) => {
         const docUrl = externalUrl
-          ? `${externalUrl}${externalUrl.includes("?") ? "&" : "?"}docId=${doc.id}`
+          ? `${window.location.origin}/api/documents/${doc.id}?linkToken=${new URL(externalUrl).searchParams.get("linkToken") || ""}`
           : "#";
         const dateStr = new Date(doc.createdAt).toLocaleDateString("pt-BR");
         const sizeStr = formatBytes(doc.size);
