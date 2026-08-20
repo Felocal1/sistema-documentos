@@ -130,6 +130,15 @@ function ClientContent() {
     fetchDocuments();
   }, [fetchClient, fetchDocuments]);
 
+  // Auto-abrir viewer quando vier docId na URL (link externo do HTML)
+  useEffect(() => {
+    const docIdParam = searchParams.get("docId");
+    if (docIdParam && documents.length > 0) {
+      const doc = documents.find(d => d.id === docIdParam);
+      if (doc) openViewer(doc);
+    }
+  }, [searchParams, documents]);
+
   // Upload handler
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,7 +261,7 @@ function ClientContent() {
 
       const docRows = documents.map((doc, i) => {
         const docUrl = externalUrl
-          ? `${externalUrl}`
+          ? `${externalUrl}${externalUrl.includes("?") ? "&" : "?"}docId=${doc.id}`
           : "#";
         const dateStr = new Date(doc.createdAt).toLocaleDateString("pt-BR");
         const sizeStr = formatBytes(doc.size);
