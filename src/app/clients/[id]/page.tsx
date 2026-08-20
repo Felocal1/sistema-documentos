@@ -264,7 +264,7 @@ function ClientContent() {
           <tr>
             <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#374151;">${i + 1}</td>
             <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#111827;font-weight:500;">
-              <a href="${clientLinkUrl}" target="_blank" style="color:#2563eb;text-decoration:none;">${doc.originalName}</a>
+              <a href="${clientLinkUrl}" style="color:#2563eb;text-decoration:none;">${doc.originalName}</a>
             </td>
             <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${dateStr}</td>
             <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${sizeStr}</td>
@@ -334,7 +334,7 @@ function ClientContent() {
     </table>` : `<div style="padding:32px;text-align:center;color:#9ca3af;">Nenhum documento anexado.</div>`}
     <div class="footer">
       Gerado automaticamente por DocManager em ${now}
-      ${clientLinkUrl ? ` · <a href="${clientLinkUrl}" target="_blank" style="color:#2563eb;">Acessar documentos online</a>` : ""}
+      ${clientLinkUrl ? ` · <a href="${clientLinkUrl}" style="color:#2563eb;">Acessar documentos online</a>` : ""}
     </div>
   </div>
 </body>
