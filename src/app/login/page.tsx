@@ -112,13 +112,6 @@ function LoginForm() {
             {!loading && "Entrar no sistema"}
           </button>
         </form>
-
-        <div className="auth-divider" style={{ marginTop: 24 }}>
-          Não tem uma conta?{" "}
-          <Link href="/register" className="auth-link" id="link-register">
-            Cadastre-se
-          </Link>
-        </div>
       </div>
     </div>
   );
