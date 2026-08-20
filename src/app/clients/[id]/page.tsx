@@ -397,9 +397,9 @@ function ClientContent() {
 
         {/* Indicador de armazenamento global do store */}
         {storeUsage && storeUsage.totalCount > 0 && (() => {
-          const { totalSize, totalCount, byType } = storeUsage;
-          const pdfInfo = byType.find(t => t.mimeType === "application/pdf") || { size: 0, count: 0 };
-          const imgInfo = byType.filter(t => t.mimeType !== "application/pdf").reduce((a, t) => ({ size: a.size + t.size, count: a.count + t.count }), { size: 0, count: 0 });
+          const { totalSize, totalCount } = storeUsage;
+          const pdfCount = documents.filter(d => d.mimeType === "application/pdf").length;
+          const imgCount = documents.length - pdfCount;
           const maxStorage = 1024 * 1024 * 1024;
           const pct = Math.min((totalSize / maxStorage) * 100, 100);
           const pctLabel = pct < 1 ? pct.toFixed(1) : pct.toFixed(0);
@@ -417,14 +417,14 @@ function ClientContent() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
                 <div style={{ textAlign: "center", padding: "10px 0", background: "var(--gray-800)", borderRadius: "var(--radius)" }}>
                   <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--gray-50)" }}>{totalCount}</div>
-                  <div style={{ fontSize: ".7rem", color: "var(--gray-500)", marginTop: 2 }}>Total</div>
+                  <div style={{ fontSize: ".7rem", color: "var(--gray-500)", marginTop: 2 }}>Total Store</div>
                 </div>
                 <div style={{ textAlign: "center", padding: "10px 0", background: "rgba(239,68,68,.08)", borderRadius: "var(--radius)" }}>
-                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#ef4444" }}>{pdfInfo.count}</div>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#ef4444" }}>{pdfCount}</div>
                   <div style={{ fontSize: ".7rem", color: "var(--gray-500)", marginTop: 2 }}>PDFs</div>
                 </div>
                 <div style={{ textAlign: "center", padding: "10px 0", background: "rgba(59,130,246,.08)", borderRadius: "var(--radius)" }}>
-                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#3b82f6" }}>{imgInfo.count}</div>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#3b82f6" }}>{imgCount}</div>
                   <div style={{ fontSize: ".7rem", color: "var(--gray-500)", marginTop: 2 }}>Imagens</div>
                 </div>
                 <div style={{ textAlign: "center", padding: "10px 0", background: "var(--gray-800)", borderRadius: "var(--radius)" }}>
