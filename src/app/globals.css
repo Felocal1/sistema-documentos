@@ -402,6 +402,12 @@ p  { color: var(--gray-400); }
   box-shadow: 0 12px 32px rgba(0,0,0,.3), 0 0 0 1px rgba(37,99,235,.2);
 }
 
+.doc-card-selected {
+  border-color: var(--brand-500) !important;
+  background: rgba(37,99,235,.1) !important;
+  box-shadow: 0 0 0 2px rgba(37,99,235,.4);
+}
+
 .doc-icon {
   width: 56px; height: 56px;
   border-radius: var(--radius);

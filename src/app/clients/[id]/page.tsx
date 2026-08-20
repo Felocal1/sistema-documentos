@@ -98,6 +98,27 @@ function ClientContent() {
   // Deleta
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Seleção em lote
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === documents.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(documents.map(d => d.id)));
+    }
+  };
+
   const fetchClient = useCallback(async () => {
     try {
       // Busca cliente por ID via CNPJ API (ajuste se tiver endpoint de ID)
@@ -202,6 +223,38 @@ function ClientContent() {
       setDeleteId(null);
       fetchUsage();
     }
+  };
+
+  // Download em lote
+  const handleBulkDownload = async () => {
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      const a = document.createElement("a");
+      a.href = `/api/documents/${id}`;
+      a.download = "";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      await new Promise(r => setTimeout(r, 300));
+    }
+  };
+
+  // Exclusão em lote
+  const [bulkDeleteId, setBulkDeleteId] = useState<string | null>(null);
+
+  const handleBulkDelete = async () => {
+    setBulkActionLoading(true);
+    const ids = Array.from(selectedIds);
+    let deleted = 0;
+    for (const id of ids) {
+      const res = await fetch(`/api/documents/${id}`, { method: "DELETE" });
+      if (res.ok) deleted++;
+    }
+    setDocuments(d => d.filter(doc => !selectedIds.has(doc.id)));
+    setSelectedIds(new Set());
+    setBulkDeleteId(null);
+    setBulkActionLoading(false);
+    fetchUsage();
   };
 
   // Drag & drop
@@ -479,9 +532,22 @@ function ClientContent() {
         {/* Documentos */}
         <div className="card">
           <div className="card-header">
-            <h2 style={{ margin: 0 }}>📂 Histórico de documentos</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {documents.length > 0 && !isLinkMode && (
+                <input
+                  id="select-all-docs"
+                  type="checkbox"
+                  checked={selectedIds.size === documents.length && documents.length > 0}
+                  onChange={toggleSelectAll}
+                  style={{ width: 18, height: 18, cursor: "pointer", accentColor: "var(--brand-500)" }}
+                />
+              )}
+              <h2 style={{ margin: 0 }}>📂 Histórico de documentos</h2>
+            </div>
             <span style={{ fontSize: ".8rem", color: "var(--gray-500)" }}>
-              {documents.length} arquivo{documents.length !== 1 ? "s" : ""}
+              {selectedIds.size > 0
+                ? `${selectedIds.size} selecionado${selectedIds.size > 1 ? "s" : ""}`
+                : `${documents.length} arquivo${documents.length !== 1 ? "s" : ""}`}
             </span>
           </div>
 
@@ -505,7 +571,22 @@ function ClientContent() {
           ) : (
             <div className="docs-grid">
               {documents.map(doc => (
-                <div key={doc.id} className="doc-card" id={`doc-${doc.id}`} onClick={() => openViewer(doc)}>
+                <div
+                  key={doc.id}
+                  className={`doc-card ${selectedIds.has(doc.id) ? "doc-card-selected" : ""}`}
+                  id={`doc-${doc.id}`}
+                  onClick={() => openViewer(doc)}
+                >
+                  {isAdmin && !isLinkMode && (
+                    <input
+                      id={`select-${doc.id}`}
+                      type="checkbox"
+                      checked={selectedIds.has(doc.id)}
+                      onChange={() => toggleSelect(doc.id)}
+                      onClick={e => e.stopPropagation()}
+                      style={{ position: "absolute", top: 8, left: 8, width: 16, height: 16, cursor: "pointer", accentColor: "var(--brand-500)", zIndex: 2 }}
+                    />
+                  )}
                   <DocIcon mimeType={doc.mimeType} />
                   <div className="doc-name">{doc.originalName}</div>
                   <div className="doc-date">{formatDate(doc.createdAt)}</div>
@@ -534,6 +615,77 @@ function ClientContent() {
           )}
         </div>
       </div>
+
+      {/* Barra de ações em lote */}
+      {selectedIds.size > 0 && !isLinkMode && (
+        <div style={{
+          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+          background: "var(--gray-900)", border: "1px solid var(--gray-700)",
+          borderRadius: "var(--radius-lg)", padding: "12px 20px",
+          display: "flex", alignItems: "center", gap: 12,
+          boxShadow: "0 8px 32px rgba(0,0,0,.5)", zIndex: 900,
+          animation: "slideUp .2s ease",
+        }}>
+          <span style={{ fontSize: ".85rem", color: "var(--gray-300)", fontWeight: 500, whiteSpace: "nowrap" }}>
+            {selectedIds.size} selecionado{selectedIds.size > 1 ? "s" : ""}
+          </span>
+          <div style={{ width: 1, height: 24, background: "var(--gray-700)" }} />
+          <button
+            id="btn-bulk-download"
+            className="btn btn-outline btn-sm"
+            onClick={handleBulkDownload}
+            disabled={bulkActionLoading}
+          >
+            ⬇ Baixar
+          </button>
+          {isAdmin && (
+            <button
+              id="btn-bulk-delete"
+              className="btn btn-danger btn-sm"
+              onClick={() => setBulkDeleteId("bulk")}
+              disabled={bulkActionLoading}
+            >
+              🗑 Excluir
+            </button>
+          )}
+          <button
+            id="btn-bulk-cancel"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setSelectedIds(new Set())}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Modal confirmação exclusão em lote */}
+      {bulkDeleteId && (
+        <div className="modal-overlay" onClick={() => setBulkDeleteId(null)}>
+          <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>⚠️ Excluir documentos</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setBulkDeleteId(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: "var(--gray-300)" }}>
+                Tem certeza que deseja excluir <strong>{selectedIds.size} arquivo{selectedIds.size > 1 ? "s" : ""}</strong>?
+                Esta ação não pode ser desfeita.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost btn-sm" onClick={() => setBulkDeleteId(null)}>Cancelar</button>
+              <button
+                id="btn-confirm-bulk-delete"
+                className={`btn btn-danger btn-sm ${bulkActionLoading ? "btn-loading" : ""}`}
+                onClick={handleBulkDelete}
+                disabled={bulkActionLoading}
+              >
+                {!bulkActionLoading && `Excluir ${selectedIds.size} arquivo${selectedIds.size > 1 ? "s" : ""}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ===== MODAL GERAR LINK ===== */}
       {showLinkModal && (
