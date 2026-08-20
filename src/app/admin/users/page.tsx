@@ -19,6 +19,11 @@ export default function AdminUsersPage() {
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const currentUserId = (session?.user as any)?.id;
+
+  // Delete
+  const [deleteUser, setDeleteUser] = useState<User | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Form cadastro
   const [showForm, setShowForm] = useState(false);
@@ -93,6 +98,17 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteUser) return;
+    setDeleteLoading(true);
+    const res = await fetch(`/api/users/${deleteUser.id}`, { method: "DELETE" });
+    if (res.ok) {
+      setUsers(u => u.filter(x => x.id !== deleteUser.id));
+    }
+    setDeleteLoading(false);
+    setDeleteUser(null);
+  };
+
   if (!isAdmin) return null;
 
   return (
@@ -149,6 +165,16 @@ export default function AdminUsersPage() {
                   }}>
                     {u.role}
                   </span>
+                  {u.id !== currentUserId && (
+                    <button
+                      id={`btn-delete-user-${u.id}`}
+                      className="btn btn-danger btn-sm"
+                      onClick={() => setDeleteUser(u)}
+                      style={{ padding: "4px 10px", fontSize: ".75rem" }}
+                    >
+                      🗑 Excluir
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -255,6 +281,35 @@ export default function AdminUsersPage() {
                   {!formLoading && "✅ Cadastrar usuário"}
                 </button>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmação exclusão */}
+      {deleteUser && (
+        <div className="modal-overlay" onClick={() => setDeleteUser(null)}>
+          <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>⚠️ Excluir usuário</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setDeleteUser(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: "var(--gray-300)" }}>
+                Tem certeza que deseja excluir o usuário <strong>{deleteUser.name}</strong> ({deleteUser.email})?
+                Esta ação não pode ser desfeita.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost btn-sm" onClick={() => setDeleteUser(null)}>Cancelar</button>
+              <button
+                id="btn-confirm-delete-user"
+                className={`btn btn-danger btn-sm ${deleteLoading ? "btn-loading" : ""}`}
+                onClick={handleDelete}
+                disabled={deleteLoading}
+              >
+                {!deleteLoading && "Excluir usuário"}
+              </button>
             </div>
           </div>
         </div>
