@@ -6,7 +6,7 @@ Documentação técnica completa do projeto.
 
 ## 1. Visão Geral
 
-**DocManager** é um sistema web para gestão e armazenamento seguro de documentos organizados por CNPJ (essoa jurídica). O sistema permite cadastrar clientes, anexar documentos (PDF, imagens), visualizar, baixar, e gerar links externos de acesso sem login.
+**DocManager** é um sistema web para gestão e armazenamento seguro de documentos organizados por CNPJ (pessoa jurídica). O sistema permite cadastrar clientes, anexar documentos (PDF, imagens), visualizar, baixar, e gerar links externos de acesso sem login.
 
 | Item | Detalhe |
 |---|---|
@@ -32,7 +32,12 @@ Documentação técnica completa do projeto.
 | Hash de Senha | bcryptjs | ^3.0.3 |
 | Hospedagem | Vercel | Hobby (gratuito) |
 
----
+----------------------------------------------------------
+
+Ou seja, 1 GB compartilhado entre todos os clientes. Se quiser mais, precisa migrar para o plano Pro ($0.023/GB/mês).
+
+
+----------------------------------------------------------
 
 ## 3. Estrutura do Projeto
 

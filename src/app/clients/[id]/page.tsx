@@ -63,6 +63,9 @@ function ClientContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Uso global do store
+  const [storeUsage, setStoreUsage] = useState<{ totalSize: number; totalCount: number; byType: { mimeType: string; size: number; count: number }[] } | null>(null);
+
   // Filtros
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -125,10 +128,21 @@ function ClientContent() {
     }
   }, [clientId, dateFrom, dateTo, linkToken]);
 
+  const fetchUsage = useCallback(async () => {
+    try {
+      const res = await fetch("/api/documents/all?usage=1");
+      if (res.ok) {
+        const data = await res.json();
+        setStoreUsage(data);
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     fetchClient();
     fetchDocuments();
-  }, [fetchClient, fetchDocuments]);
+    fetchUsage();
+  }, [fetchClient, fetchDocuments, fetchUsage]);
 
   // Upload handler
   const handleUpload = async (e: React.FormEvent) => {
@@ -159,6 +173,7 @@ function ClientContent() {
           setUploadSuccess(false);
           setUploadProgress(0);
           fetchDocuments();
+          fetchUsage();
         }, 1200);
       }
     } catch {
@@ -185,6 +200,7 @@ function ClientContent() {
     if (res.ok) {
       setDocuments(d => d.filter(doc => doc.id !== id));
       setDeleteId(null);
+      fetchUsage();
     }
   };
 
@@ -379,38 +395,36 @@ function ClientContent() {
           </div>
         )}
 
-        {/* Indicador de armazenamento */}
-        {documents.length > 0 && (() => {
-          const totalSize = documents.reduce((acc, d) => acc + d.size, 0);
-          const pdfCount = documents.filter(d => d.mimeType === "application/pdf").length;
-          const imgCount = documents.length - pdfCount;
-          const pdfSize = documents.filter(d => d.mimeType === "application/pdf").reduce((a, d) => a + d.size, 0);
-          const imgSize = totalSize - pdfSize;
-          const maxStorage = 500 * 1024 * 1024;
+        {/* Indicador de armazenamento global do store */}
+        {storeUsage && storeUsage.totalCount > 0 && (() => {
+          const { totalSize, totalCount, byType } = storeUsage;
+          const pdfInfo = byType.find(t => t.mimeType === "application/pdf") || { size: 0, count: 0 };
+          const imgInfo = byType.filter(t => t.mimeType !== "application/pdf").reduce((a, t) => ({ size: a.size + t.size, count: a.count + t.count }), { size: 0, count: 0 });
+          const maxStorage = 1024 * 1024 * 1024;
           const pct = Math.min((totalSize / maxStorage) * 100, 100);
-          const pctLabel = totalSize >= maxStorage ? "100" : pct < 1 ? pct.toFixed(1) : pct.toFixed(0);
+          const pctLabel = pct < 1 ? pct.toFixed(1) : pct.toFixed(0);
           const barColor = pct > 80 ? "var(--danger)" : pct > 50 ? "var(--warning)" : "var(--brand-500)";
 
           return (
             <div className="card" style={{ padding: "20px 24px", animation: "slideUp .5s ease" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                <div style={{ fontSize: ".9rem", fontWeight: 600, color: "var(--gray-200)" }}>📊 Uso de armazenamento</div>
-                <div style={{ fontSize: ".75rem", color: "var(--gray-500)" }}>{formatBytes(totalSize)} / 500 MB</div>
+                <div style={{ fontSize: ".9rem", fontWeight: 600, color: "var(--gray-200)" }}>📊 Armazenamento do Store</div>
+                <div style={{ fontSize: ".75rem", color: "var(--gray-500)" }}>{formatBytes(totalSize)} / 1 GB</div>
               </div>
               <div style={{ background: "var(--gray-800)", borderRadius: 999, height: 10, overflow: "hidden", marginBottom: 16 }}>
                 <div style={{ width: `${pctLabel}%`, height: "100%", background: barColor, borderRadius: 999, transition: "width .6s ease" }} />
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
                 <div style={{ textAlign: "center", padding: "10px 0", background: "var(--gray-800)", borderRadius: "var(--radius)" }}>
-                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--gray-50)" }}>{documents.length}</div>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--gray-50)" }}>{totalCount}</div>
                   <div style={{ fontSize: ".7rem", color: "var(--gray-500)", marginTop: 2 }}>Total</div>
                 </div>
                 <div style={{ textAlign: "center", padding: "10px 0", background: "rgba(239,68,68,.08)", borderRadius: "var(--radius)" }}>
-                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#ef4444" }}>{pdfCount}</div>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#ef4444" }}>{pdfInfo.count}</div>
                   <div style={{ fontSize: ".7rem", color: "var(--gray-500)", marginTop: 2 }}>PDFs</div>
                 </div>
                 <div style={{ textAlign: "center", padding: "10px 0", background: "rgba(59,130,246,.08)", borderRadius: "var(--radius)" }}>
-                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#3b82f6" }}>{imgCount}</div>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#3b82f6" }}>{imgInfo.count}</div>
                   <div style={{ fontSize: ".7rem", color: "var(--gray-500)", marginTop: 2 }}>Imagens</div>
                 </div>
                 <div style={{ textAlign: "center", padding: "10px 0", background: "var(--gray-800)", borderRadius: "var(--radius)" }}>
