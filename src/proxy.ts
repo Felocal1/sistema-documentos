@@ -30,8 +30,9 @@ export async function proxy(request: NextRequest) {
 
   // Acesso externo via link assinado (tela de anexos)
   const linkToken = request.nextUrl.searchParams.get("linkToken");
-  if (linkToken && isLinkAccessible(pathname) && verifyClientLink(linkToken)) {
-    return NextResponse.next();
+  if (linkToken && isLinkAccessible(pathname)) {
+    const valid = await verifyClientLink(linkToken);
+    if (valid) return NextResponse.next();
   }
 
   const loginUrl = new URL("/login", request.url);

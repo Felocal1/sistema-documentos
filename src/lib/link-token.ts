@@ -1,5 +1,3 @@
-import { createHmac, timingSafeEqual } from "crypto";
-
 const LINK_SECRET =
   process.env.CLIENT_LINK_SECRET || process.env.NEXTAUTH_SECRET || "dev-link-secret";
 
@@ -10,37 +8,81 @@ export interface LinkTokenPayload {
   exp: number;
 }
 
-function base64url(buf: Buffer): string {
-  return buf.toString("base64url");
+// --- Web Crypto helpers (Edge Runtime compatible) ---
+
+function bytesToBase64url(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+function base64urlToBytes(b64: string): Uint8Array {
+  let base64 = b64.replace(/-/g, "+").replace(/_/g, "/");
+  while (base64.length % 4) base64 += "=";
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function base64urlEncode(str: string): string {
+  return bytesToBase64url(new TextEncoder().encode(str));
+}
+
+function base64urlDecode(b64: string): string {
+  return new TextDecoder().decode(base64urlToBytes(b64));
+}
+
+async function hmacSign(secret: string, data: string): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return new Uint8Array(sig);
+}
+
+function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
+// --- Token functions ---
+
 // Gera um token assinado (HMAC-SHA256) que dá acesso à tela de anexos de um cliente.
-export function createClientLink(
+export async function createClientLink(
   clientId: string,
   ttlDays: number = DEFAULT_TTL_DAYS
-): { token: string; expiresAt: Date } {
+): Promise<{ token: string; expiresAt: Date }> {
   const exp = Date.now() + ttlDays * 24 * 60 * 60 * 1000;
   const payload = `${clientId}.${exp}`;
-  const signature = base64url(createHmac("sha256", LINK_SECRET).update(payload).digest());
-  const token = `${base64url(Buffer.from(payload))}.${signature}`;
+  const signatureBytes = await hmacSign(LINK_SECRET, payload);
+  const token = `${base64urlEncode(payload)}.${bytesToBase64url(signatureBytes)}`;
   return { token, expiresAt: new Date(exp) };
 }
 
 // Valida assinatura e expiração do token. Retorna null se inválido/expirado.
-export function verifyClientLink(token: string): LinkTokenPayload | null {
+export async function verifyClientLink(token: string): Promise<LinkTokenPayload | null> {
   try {
     const [encodedPayload, signature] = token.split(".");
     if (!encodedPayload || !signature) return null;
 
-    const payload = Buffer.from(encodedPayload, "base64url").toString();
+    const payload = base64urlDecode(encodedPayload);
     const [clientId, expStr] = payload.split(".");
     const exp = Number(expStr);
     if (!clientId || !exp || exp < Date.now()) return null;
 
-    const expected = base64url(createHmac("sha256", LINK_SECRET).update(payload).digest());
-    const a = Buffer.from(signature, "base64url");
-    const b = Buffer.from(expected, "base64url");
-    if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+    const expectedBytes = await hmacSign(LINK_SECRET, payload);
+    const actualBytes = base64urlToBytes(signature);
+
+    if (!timingSafeEqual(expectedBytes, actualBytes)) return null;
 
     return { clientId, exp };
   } catch {

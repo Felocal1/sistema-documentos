@@ -22,7 +22,7 @@ export async function authorizeClientAccess(
   if (clientId) {
     const linkToken = new URL(req.url).searchParams.get("linkToken");
     if (linkToken) {
-      const payload = verifyClientLink(linkToken);
+      const payload = await verifyClientLink(linkToken);
       if (payload && payload.clientId === clientId) {
         return { user: null, viaLink: true };
       }

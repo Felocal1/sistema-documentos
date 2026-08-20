@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Cliente não encontrado" }, { status: 404 });
     }
 
-    const { token, expiresAt } = createClientLink(client.id);
+    const { token, expiresAt } = await createClientLink(client.id);
 
     const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
     const protocol = req.headers.get("x-forwarded-proto") || "http";
