@@ -379,6 +379,49 @@ function ClientContent() {
           </div>
         )}
 
+        {/* Indicador de armazenamento */}
+        {documents.length > 0 && (() => {
+          const totalSize = documents.reduce((acc, d) => acc + d.size, 0);
+          const pdfCount = documents.filter(d => d.mimeType === "application/pdf").length;
+          const imgCount = documents.length - pdfCount;
+          const pdfSize = documents.filter(d => d.mimeType === "application/pdf").reduce((a, d) => a + d.size, 0);
+          const imgSize = totalSize - pdfSize;
+          const maxStorage = 500 * 1024 * 1024;
+          const pct = Math.min((totalSize / maxStorage) * 100, 100);
+          const pctLabel = totalSize >= maxStorage ? "100" : pct < 1 ? pct.toFixed(1) : pct.toFixed(0);
+          const barColor = pct > 80 ? "var(--danger)" : pct > 50 ? "var(--warning)" : "var(--brand-500)";
+
+          return (
+            <div className="card" style={{ padding: "20px 24px", animation: "slideUp .5s ease" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                <div style={{ fontSize: ".9rem", fontWeight: 600, color: "var(--gray-200)" }}>📊 Uso de armazenamento</div>
+                <div style={{ fontSize: ".75rem", color: "var(--gray-500)" }}>{formatBytes(totalSize)} / 500 MB</div>
+              </div>
+              <div style={{ background: "var(--gray-800)", borderRadius: 999, height: 10, overflow: "hidden", marginBottom: 16 }}>
+                <div style={{ width: `${pctLabel}%`, height: "100%", background: barColor, borderRadius: 999, transition: "width .6s ease" }} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+                <div style={{ textAlign: "center", padding: "10px 0", background: "var(--gray-800)", borderRadius: "var(--radius)" }}>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--gray-50)" }}>{documents.length}</div>
+                  <div style={{ fontSize: ".7rem", color: "var(--gray-500)", marginTop: 2 }}>Total</div>
+                </div>
+                <div style={{ textAlign: "center", padding: "10px 0", background: "rgba(239,68,68,.08)", borderRadius: "var(--radius)" }}>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#ef4444" }}>{pdfCount}</div>
+                  <div style={{ fontSize: ".7rem", color: "var(--gray-500)", marginTop: 2 }}>PDFs</div>
+                </div>
+                <div style={{ textAlign: "center", padding: "10px 0", background: "rgba(59,130,246,.08)", borderRadius: "var(--radius)" }}>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "#3b82f6" }}>{imgCount}</div>
+                  <div style={{ fontSize: ".7rem", color: "var(--gray-500)", marginTop: 2 }}>Imagens</div>
+                </div>
+                <div style={{ textAlign: "center", padding: "10px 0", background: "var(--gray-800)", borderRadius: "var(--radius)" }}>
+                  <div style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--gray-50)" }}>{formatBytes(totalSize)}</div>
+                  <div style={{ fontSize: ".7rem", color: "var(--gray-500)", marginTop: 2 }}>Espaço</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Filtros */}
         <div className="filters-bar">
           <div className="form-group">
