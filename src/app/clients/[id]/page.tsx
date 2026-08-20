@@ -239,7 +239,7 @@ function ClientContent() {
     setHtmlLoading(true);
     try {
       // Gera link externo para acesso aos documentos
-      let externalUrl = "";
+      let clientLinkUrl = "";
       const linkRes = await fetch("/api/client-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -247,11 +247,16 @@ function ClientContent() {
       });
       if (linkRes.ok) {
         const linkData = await linkRes.json();
-        externalUrl = linkData.link?.url || "";
+        clientLinkUrl = linkData.link?.url || "";
+      }
+
+      // Fallback: construir URL manualmente se a API não retornou
+      if (!clientLinkUrl) {
+        const origin = window.location.origin;
+        clientLinkUrl = `${origin}/clients/${clientId}`;
       }
 
       const docRows = documents.map((doc, i) => {
-        const docUrl = externalUrl || "#";
         const dateStr = new Date(doc.createdAt).toLocaleDateString("pt-BR");
         const sizeStr = formatBytes(doc.size);
         const typeLabel = doc.mimeType === "application/pdf" ? "PDF" : "Imagem";
@@ -259,7 +264,7 @@ function ClientContent() {
           <tr>
             <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#374151;">${i + 1}</td>
             <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#111827;font-weight:500;">
-              <a href="${docUrl}" target="_blank" style="color:#2563eb;text-decoration:none;">${doc.originalName}</a>
+              <a href="${clientLinkUrl}" target="_blank" style="color:#2563eb;text-decoration:none;">${doc.originalName}</a>
             </td>
             <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${dateStr}</td>
             <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${sizeStr}</td>
@@ -329,7 +334,7 @@ function ClientContent() {
     </table>` : `<div style="padding:32px;text-align:center;color:#9ca3af;">Nenhum documento anexado.</div>`}
     <div class="footer">
       Gerado automaticamente por DocManager em ${now}
-      ${externalUrl ? ` · <a href="${externalUrl}" target="_blank" style="color:#2563eb;">Acessar documentos online</a>` : ""}
+      ${clientLinkUrl ? ` · <a href="${clientLinkUrl}" target="_blank" style="color:#2563eb;">Acessar documentos online</a>` : ""}
     </div>
   </div>
 </body>
