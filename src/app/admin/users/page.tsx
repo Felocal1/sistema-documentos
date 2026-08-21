@@ -80,33 +80,41 @@ export default function AdminUsersPage() {
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
     setFormLoading(true);
-    const res = await fetch("/api/users/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: form.name.trim(), email: form.email.trim(), password: form.password }),
-    });
-    const data = await res.json();
-    setFormLoading(false);
+    try {
+      const res = await fetch("/api/users/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name.trim(), email: form.email.trim(), password: form.password }),
+      });
+      const data = await res.json();
 
-    if (!res.ok) {
-      setServerError(data.error || "Erro ao cadastrar");
-    } else {
-      setServerSuccess(`Usuário "${data.user.name}" cadastrado com sucesso!`);
-      setForm({ name: "", email: "", password: "", confirm: "" });
-      fetchUsers();
-      setTimeout(() => { setShowForm(false); setServerSuccess(""); }, 2000);
+      if (!res.ok) {
+        setServerError(data.error || "Erro ao cadastrar");
+      } else {
+        setServerSuccess(`Usuário "${data.user.name}" cadastrado com sucesso!`);
+        setForm({ name: "", email: "", password: "", confirm: "" });
+        fetchUsers();
+        setTimeout(() => { setShowForm(false); setServerSuccess(""); }, 2000);
+      }
+    } catch {
+      setServerError("Erro de conexão. Tente novamente.");
+    } finally {
+      setFormLoading(false);
     }
   };
 
   const handleDelete = async () => {
     if (!deleteUser) return;
     setDeleteLoading(true);
-    const res = await fetch(`/api/users/${deleteUser.id}`, { method: "DELETE" });
-    if (res.ok) {
-      setUsers(u => u.filter(x => x.id !== deleteUser.id));
+    try {
+      const res = await fetch(`/api/users/${deleteUser.id}`, { method: "DELETE" });
+      if (res.ok) {
+        setUsers(u => u.filter(x => x.id !== deleteUser.id));
+      }
+    } catch {} finally {
+      setDeleteLoading(false);
+      setDeleteUser(null);
     }
-    setDeleteLoading(false);
-    setDeleteUser(null);
   };
 
   if (!isAdmin) return null;
